@@ -9,9 +9,16 @@
 import UIKit
 import AVFoundation
 
+// 1: AVKit for AVPlayerViewController
+import AVKit
+
+//2: MobileCoreServices for constants such as kUTTypeMovie
+import MobileCoreServices
+
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     @IBOutlet weak var imageView: UIImageView!
     var capturedImages: [UIImage]! = []
+    var videoURL: URL?
     var imagePickerController: UIImagePickerController!
     
     @IBOutlet var overlayView: UIView!
@@ -61,6 +68,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         imagePickerController.delegate = self
         imagePickerController.modalPresentationStyle = (sourceType == .camera) ? .fullScreen : .popover
         
+        // 3. Allow choice of images and movies
+        //    Image only is the default
+        imagePickerController.mediaTypes = [String(kUTTypeImage), String(kUTTypeMovie)]
+        
         if let presentationController = imagePickerController.popoverPresentationController {
             presentationController.barButtonItem = button
             presentationController.permittedArrowDirections = .any
@@ -104,7 +115,16 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     private func finishAndUpdate() {
-        self.dismiss(animated: true, completion: nil)
+        self.dismiss(animated: true) {
+            if let url = self.videoURL {
+                let player = AVPlayer(url: url)
+                let playerController = AVPlayerViewController()
+                playerController.player = player
+                self.present(playerController, animated: true, completion: nil)
+                player.play()
+            }
+            self.videoURL = nil
+        }
         
         if self.capturedImages.count > 0 {
             self.imageView.image = self.capturedImages[0]
@@ -116,14 +136,27 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
 
     // MARK: - UIImagePickerControllerDelegate
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
-        if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
-            self.capturedImages.append(image)
-        }
-        
-        if let timer = self.cameraTimer,
-            timer.isValid {
-            print("continuing to snap until the user hits done")
-            return
+        switch info[UIImagePickerControllerMediaType] as! String {
+        // 4. Detect different media types
+        case String(kUTTypeMovie):
+            if let url = info[UIImagePickerControllerReferenceURL] as? URL {
+                self.videoURL = url
+            }
+            else {
+                print("Error getting url from picked asset")
+            }
+        case String(kUTTypeImage):
+            if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
+                self.capturedImages.append(image)
+                print("appending \(image)")
+            }
+            if let timer = self.cameraTimer,
+                timer.isValid {
+                print("continuing")
+                return
+            }
+        default:
+            print("Unknown type")
         }
         
         self.finishAndUpdate()

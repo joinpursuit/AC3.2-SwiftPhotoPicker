@@ -45,7 +45,9 @@
 	<string>to take photos and video</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>to save photos and videos</string>
-	<key>NSAppTransportSecurity</key>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>to hear your sweet voice</string>
+    <key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsForMedia</key>
 		<true/>
